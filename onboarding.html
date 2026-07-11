@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Set Up Your Profile • NutriGPT</title>
+    <meta name="description" content="Create your personalized nutrition plan with NutriGPT's guided setup.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* ── Step transitions ───────────────────────────────── */
+        .ob-step { display: none; }
+        .ob-step.active     { display: block; animation: stepIn     0.38s cubic-bezier(0.22,1,0.36,1) both; }
+        .ob-step.back-active{ display: block; animation: stepInBack 0.38s cubic-bezier(0.22,1,0.36,1) both; }
+        @keyframes stepIn     { from{opacity:0;transform:translateX(28px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes stepInBack { from{opacity:0;transform:translateX(-28px)} to{opacity:1;transform:translateX(0)} }
+
+        /* ── Progress bar fill ──────────────────────────────── */
+        #ob-progress-fill { transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+
+        /* ── Selection cards ────────────────────────────────── */
+        .sel-card {
+            cursor: pointer;
+            border: 2px solid rgba(63,63,70,.8);
+            background: rgba(24,24,27,.5);
+            border-radius: 1.25rem;
+            transition: border-color .2s, background .2s, transform .2s, box-shadow .2s;
+        }
+        .sel-card:hover { border-color:rgba(16,185,129,.5); background:rgba(16,185,129,.06); transform:translateY(-1px); }
+        .sel-card.selected {
+            border-color:#10b981;
+            background:rgba(16,185,129,.10);
+            box-shadow:0 0 0 4px rgba(16,185,129,.08),0 6px 20px -6px rgba(16,185,129,.25);
+        }
+        .sel-check { opacity:0; transform:scale(0); transition: opacity .15s, transform .15s cubic-bezier(0.34,1.56,0.64,1); }
+        .sel-card.selected .sel-check { opacity:1; transform:scale(1); }
+
+        /* ── Pill buttons (bio sex, unit system) ─────────────── */
+        .pill-btn {
+            cursor:pointer; border:2px solid rgba(63,63,70,.8);
+            background:rgba(24,24,27,.4); border-radius:9999px;
+            padding:.5rem 1rem; font-size:.8rem; font-weight:500;
+            transition:border-color .18s, background .18s, color .18s; color:#a1a1aa;
+        }
+        .pill-btn:hover { border-color:rgba(16,185,129,.4); color:#e4e4e7; }
+        .pill-btn.selected { border-color:#10b981; background:rgba(16,185,129,.15); color:#10b981; }
+
+        /* ── Form inputs ────────────────────────────────────── */
+        .ob-input {
+            width:100%; background:rgba(9,9,11,.6);
+            border:2px solid rgba(63,63,70,.8); border-radius:1rem;
+            padding:.75rem 1rem; font-size:.875rem; color:white;
+            transition:border-color .2s, box-shadow .2s; outline:none;
+        }
+        .ob-input::placeholder { color:#52525b; }
+        .ob-input:focus { border-color:#10b981; box-shadow:0 0 0 4px rgba(16,185,129,.12); }
+        .ob-input.has-icon   { padding-left:2.75rem; }
+        .ob-input.has-suffix { padding-right:3.5rem; }
+        .ob-input.error { border-color:#f43f5e; box-shadow:0 0 0 3px rgba(244,63,94,.10); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter:invert(1) opacity(.3); cursor:pointer; }
+
+        /* ── Input icon / suffix ────────────────────────────── */
+        .ob-icon {
+            position:absolute; left:1rem; top:50%; transform:translateY(-50%);
+            color:#52525b; font-size:.85rem; pointer-events:none;
+        }
+        .ob-suffix {
+            position:absolute; right:1rem; top:50%; transform:translateY(-50%);
+            color:#52525b; font-size:.75rem; font-weight:500; pointer-events:none;
+        }
+
+        /* ── Label ──────────────────────────────────────────── */
+        .ob-label {
+            display:block; font-size:.68rem; font-weight:700;
+            text-transform:uppercase; letter-spacing:.06em; color:#71717a; margin-bottom:.5rem;
+        }
+
+        /* ── Result cards ───────────────────────────────────── */
+        .res-card {
+            background:rgba(24,24,27,.7); border:1px solid rgba(63,63,70,.5);
+            border-radius:1.25rem; padding:1.25rem;
+        }
+        .res-card.highlight { background:rgba(16,185,129,.07); border-color:rgba(16,185,129,.3); }
+        .res-row > .res-card:nth-child(1) { animation: resIn .4s .05s both; }
+        .res-row > .res-card:nth-child(2) { animation: resIn .4s .12s both; }
+        .res-card.macro-card               { animation: resIn .4s .19s both; }
+        .res-card.summary-line             { animation: resIn .4s .26s both; }
+        @keyframes resIn { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ── Welcome icon ───────────────────────────────────── */
+        .welcome-icon { animation: welPulse 3.5s ease-in-out infinite; }
+        @keyframes welPulse { 0%,100%{transform:scale(1) rotate(0)} 50%{transform:scale(1.07) rotate(-4deg)} }
+    </style>
+</head>
+<body class="tail-container auth-bg text-zinc-200 min-h-screen flex items-start justify-center p-4 pt-8 pb-12">
+
+    <div class="auth-orb auth-orb-1"></div>
+    <div class="auth-orb auth-orb-2"></div>
+
+    <!-- Auth-check gate -->
+    <div id="auth-gate" class="auth-gate">
+        <div class="flex flex-col items-center gap-y-4">
+            <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl bot-icon">🥑</div>
+            <div class="btn-spinner" style="border-top-color:#10b981;border-color:rgba(16,185,129,0.25)"></div>
+            <p class="text-xs text-zinc-500">Checking session…</p>
+        </div>
+    </div>
+
+    <!-- Onboarding shell -->
+    <div id="ob-shell" class="hidden w-full max-w-xl">
+
+        <!-- Brand -->
+        <div class="flex items-center justify-center gap-x-3 mb-5">
+            <div class="w-8 h-8 bg-emerald-500 rounded-xl flex items-center justify-center text-xl shadow-inner shadow-emerald-600">🥑</div>
+            <span class="logo-font text-xl font-semibold tracking-tighter text-white">nutri<span class="text-emerald-400">GPT</span></span>
+        </div>
+
+        <!-- Progress (hidden on welcome) -->
+        <div id="ob-progress" class="hidden mb-5 px-1">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-semibold text-zinc-300" id="ob-step-label">Personal Info</span>
+                <span class="text-xs text-zinc-600">Step <span id="ob-step-num">1</span> of 5</span>
+            </div>
+            <div class="h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
+                <div id="ob-progress-fill"
+                     class="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full"
+                     style="width:20%"></div>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="auth-card rounded-[2rem]">
+            <div class="p-8 sm:p-10">
+
+                <!-- ═══════════════════════════════════════════════════════
+                     WELCOME SCREEN
+                ════════════════════════════════════════════════════════ -->
+                <div class="ob-step active" id="step-welcome">
+                    <div class="text-center">
+                        <div class="inline-flex items-center justify-center w-20 h-20 bg-emerald-500/15 border border-emerald-500/20 rounded-3xl mb-6 welcome-icon">
+                            <span class="text-5xl">🥑</span>
+                        </div>
+                        <h1 class="text-3xl font-light text-white mb-1">
+                            Welcome, <span id="welcome-name" class="font-semibold text-emerald-400">there</span>! 👋
+                        </h1>
+                        <p class="text-zinc-500 text-sm mb-8">
+                            Let's build your personalized nutrition blueprint.<br>Takes about 2 minutes.
+                        </p>
+
+                        <!-- Feature highlights -->
+                        <div class="text-left space-y-3 mb-8 bg-zinc-900/60 rounded-2xl p-5 border border-zinc-800/70">
+                            <div class="flex items-center gap-x-3.5">
+                                <div class="w-8 h-8 bg-emerald-900/50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-calculator text-emerald-400 text-xs"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">Precision calorie targets</div>
+                                    <div class="text-xs text-zinc-500">BMR, TDEE &amp; goal-adjusted calories</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-x-3.5">
+                                <div class="w-8 h-8 bg-blue-900/50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-dumbbell text-blue-400 text-xs"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">Personalized macro split</div>
+                                    <div class="text-xs text-zinc-500">Protein, carbs &amp; fat tuned to your goal</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-x-3.5">
+                                <div class="w-8 h-8 bg-amber-900/50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                    <i class="fa-solid fa-bullseye text-amber-400 text-xs"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-medium text-white">Realistic goal timeline</div>
+                                    <div class="text-xs text-zinc-500">Target weight with a custom deadline</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="btn-start" onclick="startOnboarding()"
+                            class="auth-btn w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold py-4 rounded-2xl flex items-center justify-center gap-x-2 text-sm">
+                            <span>Begin Setup</span>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
+                        </button>
+                        <p class="text-[11px] text-zinc-700 mt-4">
+                            <i class="fa-solid fa-lock mr-1"></i>Stored securely in your account
+                        </p>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════
+                     STEP 1 — Personal Information
+                ════════════════════════════════════════════════════════ -->
+                <div class="ob-step" id="step-1">
+                    <div class="mb-7">
+                        <h2 class="text-xl font-semibold text-white mb-1">Personal Information</h2>
+                        <p class="text-zinc-500 text-xs">Helps personalize your experience and calculate your age</p>
+                    </div>
+                    <div class="space-y-5">
+
+                        <!-- Full Name -->
+                        <div>
+                            <label class="ob-label">Full Name</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-user ob-icon"></i>
+                                <input id="ob-name" type="text" autocomplete="name"
+                                    class="ob-input has-icon" placeholder="Alex Rivera">
+                            </div>
+                            <p class="field-msg" data-for="ob-name"></p>
+                        </div>
+
+                        <!-- Date of Birth -->
+                        <div>
+                            <label class="ob-label">Date of Birth <span class="text-zinc-600 font-normal normal-case tracking-normal">(age calculated automatically)</span></label>
+                            <div class="relative">
+                                <i class="fa-solid fa-cake-candles ob-icon"></i>
+                                <input id="ob-dob" type="date" class="ob-input has-icon">
+                            </div>
+                            <p class="field-msg" data-for="ob-dob"></p>
+                        </div>
+
+                        <!-- Biological Sex -->
+                        <div>
+                            <label class="ob-label">Biological Sex <span class="text-zinc-600 font-normal normal-case tracking-normal">(used for BMR formula)</span></label>
+                            <div class="flex gap-x-2.5 mt-1.5" id="biosex-group">
+                                <button class="pill-btn flex-1 text-center" data-sex="male">
+                                    <span class="opacity-60 mr-1">♂</span> Male
+                                </button>
+                                <button class="pill-btn flex-1 text-center" data-sex="female">
+                                    <span class="opacity-60 mr-1">♀</span> Female
+                                </button>
+                                <button class="pill-btn flex-1 text-center" data-sex="other">
+                                    <i class="fa-solid fa-circle-half-stroke mr-1 text-xs opacity-60"></i> Other
+                                </button>
+                            </div>
+                            <p class="field-msg mt-1" data-for="biosex"></p>
+                        </div>
+
+                        <!-- Unit System -->
+                        <div>
+                            <label class="ob-label">Unit System</label>
+                            <div class="flex gap-x-2.5 mt-1.5" id="unit-group">
+                                <button class="pill-btn flex-1 text-center selected" data-unit="metric">
+                                    <i class="fa-solid fa-ruler text-xs mr-1.5"></i> Metric
+                                    <span class="text-zinc-500 text-[10px] font-normal ml-1">(kg, cm)</span>
+                                </button>
+                                <button class="pill-btn flex-1 text-center" data-unit="imperial">
+                                    <i class="fa-solid fa-ruler-horizontal text-xs mr-1.5"></i> Imperial
+                                    <span class="text-zinc-500 text-[10px] font-normal ml-1">(lbs, ft)</span>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════
+                     STEP 2 — Body Metrics
+                ════════════════════════════════════════════════════════ -->
+                <div class="ob-step" id="step-2">
+                    <div class="mb-7">
+                        <h2 class="text-xl font-semibold text-white mb-1">Body Metrics</h2>
+                        <p class="text-zinc-500 text-xs">Used to calculate your precise daily calorie needs</p>
+                    </div>
+                    <div class="space-y-5">
+
+                        <!-- Height -->
+                        <div>
+                            <label class="ob-label">Height</label>
+                            <!-- Metric -->
+                            <div id="height-metric">
+                                <div class="relative">
+                                    <i class="fa-solid fa-ruler-vertical ob-icon"></i>
+                                    <input id="ob-height-cm" type="number" min="100" max="250"
+                                        class="ob-input has-icon has-suffix" placeholder="175">
+                                    <span class="ob-suffix">cm</span>
+                                </div>
+                            </div>
+                            <!-- Imperial -->
+                            <div id="height-imperial" class="hidden flex gap-x-3">
+                                <div class="flex-1 relative">
+                                    <i class="fa-solid fa-ruler-vertical ob-icon"></i>
+                                    <input id="ob-height-ft" type="number" min="3" max="8"
+                                        class="ob-input has-icon has-suffix" placeholder="5">
+                                    <span class="ob-suffix">ft</span>
+                                </div>
+                                <div class="flex-1 relative">
+                                    <input id="ob-height-in" type="number" min="0" max="11"
+                                        class="ob-input has-suffix" placeholder="9">
+                                    <span class="ob-suffix">in</span>
+                                </div>
+                            </div>
+                            <p class="field-msg" data-for="ob-height"></p>
+                        </div>
+
+                        <!-- Current Weight -->
+                        <div>
+                            <label class="ob-label">Current Weight</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-weight-scale ob-icon"></i>
+                                <input id="ob-weight" type="number" min="20" max="600" step="0.1"
+                                    class="ob-input has-icon has-suffix" placeholder="75">
+                                <span id="weight-unit-label" class="ob-suffix">kg</span>
+                            </div>
+                            <p class="field-msg" data-for="ob-weight"></p>
+                        </div>
+
+                        <!-- Target Weight -->
+                        <div>
+                            <label class="ob-label">Target Weight</label>
+                            <div class="relative">
+                                <i class="fa-solid fa-bullseye ob-icon"></i>
+                                <input id="ob-target-weight" type="number" min="20" max="600" step="0.1"
+                                    class="ob-input has-icon has-suffix" placeholder="70">
+                                <span id="target-weight-unit-label" class="ob-suffix">kg</span>
+                            </div>
+                            <p class="field-msg" data-for="ob-target-weight"></p>
+                        </div>
+
+                        <!-- Target Date (optional) -->
+                        <div>
+                            <label class="ob-label">Target Date <span class="text-zinc-600 font-normal normal-case tracking-normal">(optional)</span></label>
+                            <div class="relative">
+                                <i class="fa-solid fa-calendar-days ob-icon"></i>
+                                <input id="ob-target-date" type="date" class="ob-input has-icon">
+                            </div>
+                            <p id="target-date-hint" class="text-[11px] text-zinc-600 mt-1 pl-1 min-h-[1rem]"></p>
+                            <p class="field-msg" data-for="ob-target-date"></p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════
+                     STEP 3 — Goal
+                ════════════════════════════════════════════════════════ -->
+                <div class="ob-step" id="step-3">
+                    <div class="mb-7">
+                        <h2 class="text-xl font-semibold text-white mb-1">Primary Goal</h2>
+                        <p class="text-zinc-500 text-xs">We'll calibrate your calorie targets accordingly</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3" id="goal-group">
+                        <div class="sel-card p-5" data-goal="fat_loss">
+                            <div class="flex items-start justify-between mb-3">
+                                <span class="text-3xl">🔥</span>
+                                <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                                </span>
+                            </div>
+                            <div class="font-semibold text-white text-sm mb-1">Fat Loss</div>
+                            <div class="text-zinc-500 text-xs leading-relaxed">Burn fat, preserve muscle</div>
+                            <div class="mt-3">
+                                <span class="text-[10px] text-rose-400 font-semibold bg-rose-500/10 px-2 py-0.5 rounded-full">−20% deficit</span>
+                            </div>
+                        </div>
+                        <div class="sel-card p-5" data-goal="maintain">
+                            <div class="flex items-start justify-between mb-3">
+                                <span class="text-3xl">⚖️</span>
+                                <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                                </span>
+                            </div>
+                            <div class="font-semibold text-white text-sm mb-1">Maintain</div>
+                            <div class="text-zinc-500 text-xs leading-relaxed">Keep current composition</div>
+                            <div class="mt-3">
+                                <span class="text-[10px] text-zinc-400 font-semibold bg-zinc-500/10 px-2 py-0.5 rounded-full">TDEE calories</span>
+                            </div>
+                        </div>
+                        <div class="sel-card p-5" data-goal="lean_bulk">
+                            <div class="flex items-start justify-between mb-3">
+                                <span class="text-3xl">💪</span>
+                                <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                                </span>
+                            </div>
+                            <div class="font-semibold text-white text-sm mb-1">Lean Bulk</div>
+                            <div class="text-zinc-500 text-xs leading-relaxed">Slow, clean muscle gain</div>
+                            <div class="mt-3">
+                                <span class="text-[10px] text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-full">+10% surplus</span>
+                            </div>
+                        </div>
+                        <div class="sel-card p-5" data-goal="muscle_gain">
+                            <div class="flex items-start justify-between mb-3">
+                                <span class="text-3xl">🏋️</span>
+                                <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
+                                    <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                                </span>
+                            </div>
+                            <div class="font-semibold text-white text-sm mb-1">Muscle Gain</div>
+                            <div class="text-zinc-500 text-xs leading-relaxed">Maximize muscle growth</div>
+                            <div class="mt-3">
+                                <span class="text-[10px] text-blue-400 font-semibold bg-blue-500/10 px-2 py-0.5 rounded-full">+15% surplus</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="field-msg mt-3" data-for="goal"></p>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════
+                     STEP 4 — Activity Level
+                ════════════════════════════════════════════════════════ -->
+                <div class="ob-step" id="step-4">
+                    <div class="mb-7">
+                        <h2 class="text-xl font-semibold text-white mb-1">Activity Level</h2>
+                        <p class="text-zinc-500 text-xs">Your activity determines your total energy expenditure (TDEE)</p>
+                    </div>
+                    <div class="space-y-2.5" id="activity-group">
+                        <div class="sel-card p-4 flex items-center gap-x-4" data-activity="sedentary">
+                            <div class="text-2xl w-9 flex-shrink-0 text-center">🛋️</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-white text-sm">Sedentary</div>
+                                <div class="text-zinc-500 text-xs truncate">Desk job, little or no exercise</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-zinc-600 flex-shrink-0">×1.2</div>
+                            <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                            </span>
+                        </div>
+                        <div class="sel-card p-4 flex items-center gap-x-4" data-activity="lightly_active">
+                            <div class="text-2xl w-9 flex-shrink-0 text-center">🚶</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-white text-sm">Lightly Active</div>
+                                <div class="text-zinc-500 text-xs truncate">Light exercise 1–3 days/week</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-zinc-600 flex-shrink-0">×1.375</div>
+                            <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                            </span>
+                        </div>
+                        <div class="sel-card p-4 flex items-center gap-x-4" data-activity="moderately_active">
+                            <div class="text-2xl w-9 flex-shrink-0 text-center">🏃</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-white text-sm">Moderately Active</div>
+                                <div class="text-zinc-500 text-xs truncate">Moderate exercise 3–5 days/week</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-zinc-600 flex-shrink-0">×1.55</div>
+                            <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                            </span>
+                        </div>
+                        <div class="sel-card p-4 flex items-center gap-x-4" data-activity="very_active">
+                            <div class="text-2xl w-9 flex-shrink-0 text-center">⚡</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-white text-sm">Very Active</div>
+                                <div class="text-zinc-500 text-xs truncate">Hard exercise 6–7 days/week</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-zinc-600 flex-shrink-0">×1.725</div>
+                            <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                            </span>
+                        </div>
+                        <div class="sel-card p-4 flex items-center gap-x-4" data-activity="athlete">
+                            <div class="text-2xl w-9 flex-shrink-0 text-center">🏅</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-semibold text-white text-sm">Athlete</div>
+                                <div class="text-zinc-500 text-xs truncate">Twice-daily training or physical job</div>
+                            </div>
+                            <div class="text-[10px] font-mono text-zinc-600 flex-shrink-0">×1.9</div>
+                            <span class="sel-check w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fa-solid fa-check text-[8px] text-zinc-950"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <p class="field-msg mt-3" data-for="activity"></p>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════
+                     STEP 5 — Results
+                ════════════════════════════════════════════════════════ -->
+                <div class="ob-step" id="step-5">
+                    <div class="text-center mb-6">
+                        <div class="text-3xl mb-2">🎯</div>
+                        <h2 class="text-xl font-semibold text-white mb-1">Your Personalized Plan</h2>
+                        <p class="text-zinc-500 text-xs">Science-backed targets — ready to start tracking</p>
+                    </div>
+
+                    <!-- Main calorie highlight -->
+                    <div class="res-card highlight mb-3 text-center relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-br from-emerald-500/6 to-transparent pointer-events-none rounded-[1.25rem]"></div>
+                        <div class="text-[10px] uppercase tracking-widest text-emerald-400 font-semibold mb-1">Daily Calorie Goal</div>
+                        <div id="res-calories" class="text-5xl font-light text-white tabular-nums">—</div>
+                        <div class="text-zinc-500 text-xs mt-1">kcal / day</div>
+                        <div id="res-goal-note" class="mt-2 text-[10px] text-zinc-500 bg-zinc-800/70 px-3 py-1 rounded-full inline-block"></div>
+                    </div>
+
+                    <!-- BMR + Maintenance row -->
+                    <div class="res-row grid grid-cols-2 gap-3 mb-3">
+                        <div class="res-card text-center">
+                            <div class="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">BMR</div>
+                            <div id="res-bmr" class="text-2xl font-light text-white tabular-nums">—</div>
+                            <div class="text-[10px] text-zinc-600 mt-0.5">at complete rest</div>
+                        </div>
+                        <div class="res-card text-center">
+                            <div class="text-[10px] uppercase tracking-wide text-zinc-500 mb-1">Maintenance</div>
+                            <div id="res-tdee" class="text-2xl font-light text-white tabular-nums">—</div>
+                            <div class="text-[10px] text-zinc-600 mt-0.5">TDEE kcal/day</div>
+                        </div>
+                    </div>
+
+                    <!-- Macros -->
+                    <div class="res-card macro-card">
+                        <div class="text-[10px] uppercase tracking-widest text-zinc-500 font-semibold mb-4">Daily Macros</div>
+                        <div class="grid grid-cols-3 gap-4 text-center">
+                            <div>
+                                <div class="flex items-center justify-center gap-x-1 text-blue-400 text-[10px] font-semibold mb-2">
+                                    <i class="fa-solid fa-dumbbell text-[8px]"></i> PROTEIN
+                                </div>
+                                <div id="res-protein" class="text-2xl font-semibold text-white tabular-nums">—</div>
+                                <div class="text-[10px] text-zinc-600 mt-0.5">grams</div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-center gap-x-1 text-amber-400 text-[10px] font-semibold mb-2">
+                                    <i class="fa-solid fa-bread-slice text-[8px]"></i> CARBS
+                                </div>
+                                <div id="res-carbs" class="text-2xl font-semibold text-white tabular-nums">—</div>
+                                <div class="text-[10px] text-zinc-600 mt-0.5">grams</div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-center gap-x-1 text-rose-400 text-[10px] font-semibold mb-2">
+                                    <i class="fa-solid fa-burger text-[8px]"></i> FAT
+                                </div>
+                                <div id="res-fat" class="text-2xl font-semibold text-white tabular-nums">—</div>
+                                <div class="text-[10px] text-zinc-600 mt-0.5">grams</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary line -->
+                    <div id="res-summary" class="summary-line text-center text-xs text-zinc-500 mt-3 min-h-[1.25rem]"></div>
+                </div>
+
+            </div><!-- /inner -->
+
+            <!-- Navigation -->
+            <div id="ob-nav" class="hidden px-8 sm:px-10 pb-8 -mt-2 flex items-center justify-between gap-x-4">
+                <button id="btn-back" onclick="goBack()"
+                    class="flex items-center gap-x-2 text-sm text-zinc-400 hover:text-white transition-colors px-4 py-2.5 rounded-2xl hover:bg-zinc-800/70">
+                    <i class="fa-solid fa-arrow-left text-xs"></i> Back
+                </button>
+                <button id="btn-next" onclick="goNext()"
+                    class="auth-btn bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold px-7 py-2.5 rounded-2xl text-sm flex items-center gap-x-2">
+                    <span>Continue</span>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </button>
+            </div>
+
+        </div><!-- /auth-card -->
+
+        <p class="text-center text-[11px] text-zinc-700 mt-4">
+            NutriGPT • Your data is end-to-end encrypted
+        </p>
+    </div><!-- /ob-shell -->
+
+    <script type="module">
+        import { auth, db } from "./firebase.js";
+        import { onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { buildNutritionPlan, calculateAge, lbsToKg, ftInToCm, GOAL_CONFIG } from "./nutritionEngine.js";
+
+        // ── Auth guard ────────────────────────────────────────
+        let currentUser = null;
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.replace("login.html"); return; }
+            currentUser = user;
+
+            // Skip if already onboarded
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists() && snap.data().onboardingCompleted) {
+                    window.location.replace("index.html"); return;
+                }
+            } catch (e) { console.warn("Profile check:", e); }
+
+            // Pre-fill name
+            const firstName = (user.displayName || user.email?.split("@")[0] || "there").split(" ")[0];
+            document.getElementById("welcome-name").textContent = firstName;
+            const nameInput = document.getElementById("ob-name");
+            if (nameInput && user.displayName) nameInput.value = user.displayName;
+
+            // DOB constraints
+            const today = new Date();
+            const maxDob = new Date(today); maxDob.setFullYear(today.getFullYear() - 10);
+            const minDob = new Date(today); minDob.setFullYear(today.getFullYear() - 100);
+            document.getElementById("ob-dob").max = maxDob.toISOString().split("T")[0];
+            document.getElementById("ob-dob").min = minDob.toISOString().split("T")[0];
+
+            // Target date min (4 weeks from today)
+            const minTarget = new Date(today); minTarget.setDate(today.getDate() + 28);
+            document.getElementById("ob-target-date").min = minTarget.toISOString().split("T")[0];
+
+            // Reveal shell
+            const gate = document.getElementById("auth-gate");
+            const shell = document.getElementById("ob-shell");
+            shell.classList.remove("hidden");
+            gate.classList.add("hidden-fade");
+            setTimeout(() => gate.remove(), 400);
+
+            updateProgress();
+        });
+
+        // ── State ─────────────────────────────────────────────
+        const STEP_LABELS = { 1:"Personal Info", 2:"Body Metrics", 3:"Your Goal", 4:"Activity Level", 5:"Your Plan" };
+        let currentStep = "welcome";
+
+        const formData = {
+            name: "", dateOfBirth: "", biologicalSex: null, unitSystem: "metric",
+            heightCm: null, currentWeightKg: null, targetWeightKg: null, targetDate: "",
+            goal: null, activityLevel: null, _plan: null,
+        };
+
+        // ── Progress bar ──────────────────────────────────────
+        function updateProgress() {
+            const prog = document.getElementById("ob-progress");
+            const nav  = document.getElementById("ob-nav");
+            const isWelcome = currentStep === "welcome";
+
+            prog.classList.toggle("hidden", isWelcome);
+            nav.classList.toggle("hidden", isWelcome);
+            if (isWelcome) return;
+
+            const n = Number(currentStep);
+            document.getElementById("ob-step-num").textContent   = n;
+            document.getElementById("ob-step-label").textContent = STEP_LABELS[n] || "";
+            document.getElementById("ob-progress-fill").style.width = `${(n / 5) * 100}%`;
+            document.getElementById("btn-back").style.visibility = n > 1 ? "visible" : "hidden";
+
+            // Next button label
+            const btn = document.getElementById("btn-next");
+            if (n === 5) {
+                btn.innerHTML = `<i class="fa-solid fa-check mr-2 text-xs"></i><span>Complete Setup</span>`;
+            } else {
+                btn.innerHTML = `<span>Continue</span><i class="fa-solid fa-arrow-right ml-2 text-xs"></i>`;
+            }
+        }
+
+        // ── Step switch ───────────────────────────────────────
+        function switchTo(newStep, dir = "forward") {
+            const fromId = currentStep === "welcome" ? "step-welcome" : `step-${currentStep}`;
+            const toId   = newStep    === "welcome" ? "step-welcome" : `step-${newStep}`;
+            const fromEl = document.getElementById(fromId);
+            const toEl   = document.getElementById(toId);
+
+            fromEl.classList.remove("active", "back-active");
+            fromEl.style.display = "none";
+            currentStep = newStep;
+            updateProgress();
+            toEl.style.display = "block";
+            // Force reflow for animation restart
+            void toEl.offsetWidth;
+            toEl.classList.add(dir === "back" ? "back-active" : "active");
+        }
+
+        // ── Selection groups ──────────────────────────────────
+        function setupGroup(groupId, attr, cb) {
+            document.querySelectorAll(`#${groupId} [${attr}]`).forEach(el => {
+                el.addEventListener("click", () => {
+                    document.querySelectorAll(`#${groupId} [${attr}]`).forEach(c => c.classList.remove("selected"));
+                    el.classList.add("selected");
+                    cb(el.getAttribute(attr));
+                });
+            });
+        }
+
+        setupGroup("biosex-group",   "data-sex",      val => { formData.biologicalSex = val; clearMsg("biosex"); });
+        setupGroup("unit-group",     "data-unit",     val => { formData.unitSystem = val; applyUnitLabels(); });
+        setupGroup("goal-group",     "data-goal",     val => { formData.goal = val;  clearMsg("goal"); });
+        setupGroup("activity-group", "data-activity", val => { formData.activityLevel = val; clearMsg("activity"); });
+
+        function applyUnitLabels() {
+            const metric = formData.unitSystem === "metric";
+            document.getElementById("height-metric").classList.toggle("hidden", !metric);
+            document.getElementById("height-imperial").classList.toggle("hidden", metric);
+            document.getElementById("weight-unit-label").textContent        = metric ? "kg" : "lbs";
+            document.getElementById("target-weight-unit-label").textContent = metric ? "kg" : "lbs";
+            document.getElementById("ob-weight").placeholder        = metric ? "75"  : "165";
+            document.getElementById("ob-target-weight").placeholder = metric ? "70"  : "154";
+        }
+
+        // Target date hint
+        document.getElementById("ob-target-date").addEventListener("change", e => {
+            const hint = document.getElementById("target-date-hint");
+            if (!e.target.value) { hint.textContent = ""; return; }
+            const weeks = Math.round((new Date(e.target.value) - new Date()) / 6048e5);
+            hint.textContent = weeks > 0 ? `${weeks} week${weeks !== 1 ? "s" : ""} from today` : "";
+        });
+
+        // ── Height / weight helpers ───────────────────────────
+        function getHeightCm() {
+            if (formData.unitSystem === "metric") {
+                return parseFloat(document.getElementById("ob-height-cm").value) || 0;
+            }
+            const ft = parseFloat(document.getElementById("ob-height-ft").value) || 0;
+            const _in = parseFloat(document.getElementById("ob-height-in").value) || 0;
+            return ftInToCm(ft, _in);
+        }
+        function getWeightKg(id) {
+            const v = parseFloat(document.getElementById(id).value) || 0;
+            return formData.unitSystem === "imperial" ? lbsToKg(v) : v;
+        }
+
+        // ── Validation helpers ────────────────────────────────
+        function showMsg(id, msg) {
+            const p = document.querySelector(`.field-msg[data-for="${id}"]`);
+            const i = document.getElementById(id);
+            if (p) { p.textContent = msg; p.classList.add("show"); }
+            if (i) i.classList.add("error");
+        }
+        function clearMsg(id) {
+            const p = document.querySelector(`.field-msg[data-for="${id}"]`);
+            const i = document.getElementById(id);
+            if (p) { p.textContent = ""; p.classList.remove("show"); }
+            if (i) i.classList.remove("error");
+        }
+        function clearAllMsgs() {
+            document.querySelectorAll(".field-msg").forEach(p => { p.textContent = ""; p.classList.remove("show"); });
+            document.querySelectorAll(".ob-input").forEach(i => i.classList.remove("error"));
+        }
+
+        function validateStep(n) {
+            clearAllMsgs();
+            let ok = true;
+            if (n === 1) {
+                if (document.getElementById("ob-name").value.trim().length < 2) { showMsg("ob-name","Please enter your full name."); ok=false; }
+                const dob = document.getElementById("ob-dob").value;
+                if (!dob) { showMsg("ob-dob","Please enter your date of birth."); ok=false; }
+                else if (calculateAge(dob) < 10) { showMsg("ob-dob","You must be at least 10 years old."); ok=false; }
+                if (!formData.biologicalSex) { showMsg("biosex","Please select one option."); ok=false; }
+            } else if (n === 2) {
+                const h = getHeightCm(), w = getWeightKg("ob-weight"), t = getWeightKg("ob-target-weight");
+                if (!h || h < 100 || h > 250) { showMsg("ob-height","Enter a valid height."); ok=false; }
+                if (!w || w <  20 || w > 400) { showMsg("ob-weight","Enter a valid weight."); ok=false; }
+                if (!t || t <  20 || t > 400) { showMsg("ob-target-weight","Enter a valid target weight."); ok=false; }
+            } else if (n === 3) {
+                if (!formData.goal) { showMsg("goal","Please choose your primary goal."); ok=false; }
+            } else if (n === 4) {
+                if (!formData.activityLevel) { showMsg("activity","Please select your activity level."); ok=false; }
+            }
+            return ok;
+        }
+
+        // ── Collect form data ─────────────────────────────────
+        function collectStep(n) {
+            if (n === 1) {
+                formData.name        = document.getElementById("ob-name").value.trim();
+                formData.dateOfBirth = document.getElementById("ob-dob").value;
+            } else if (n === 2) {
+                formData.heightCm        = getHeightCm();
+                formData.currentWeightKg = getWeightKg("ob-weight");
+                formData.targetWeightKg  = getWeightKg("ob-target-weight");
+                formData.targetDate      = document.getElementById("ob-target-date").value;
+            }
+        }
+
+        // ── Results display ───────────────────────────────────
+        function showResults() {
+            const plan = buildNutritionPlan({
+                dateOfBirth:      formData.dateOfBirth,
+                biologicalSex:    formData.biologicalSex,
+                heightCm:         formData.heightCm,
+                currentWeightKg:  formData.currentWeightKg,
+                goal:             formData.goal,
+                activityLevel:    formData.activityLevel,
+            });
+            formData._plan = plan;
+
+            animCount("res-calories", plan.dailyCalories);
+            animCount("res-bmr",      plan.bmr);
+            animCount("res-tdee",     plan.maintenanceCalories);
+            animCount("res-protein",  plan.proteinG);
+            animCount("res-carbs",    plan.carbsG);
+            animCount("res-fat",      plan.fatG);
+
+            const goalCfg = GOAL_CONFIG[formData.goal] || {};
+            const diff    = plan.dailyCalories - plan.maintenanceCalories;
+            document.getElementById("res-goal-note").textContent =
+                `${goalCfg.label || ""} • ${diff >= 0 ? "+" : ""}${diff} kcal vs. maintenance`;
+
+            const summary = document.getElementById("res-summary");
+            if (formData.targetDate) {
+                const wks = Math.round((new Date(formData.targetDate) - new Date()) / 6048e5);
+                const unit = formData.unitSystem === "imperial"
+                    ? `${Math.round(formData.targetWeightKg * 2.20462)} lbs`
+                    : `${formData.targetWeightKg} kg`;
+                summary.innerHTML = `Target: <span class="text-white">${unit}</span> in <span class="text-emerald-400">${wks} week${wks !== 1 ? "s" : ""}</span>`;
+            } else {
+                summary.textContent = "";
+            }
+        }
+
+        function animCount(elId, target) {
+            const el = document.getElementById(elId);
+            if (!el) return;
+            const dur = 900, t0 = performance.now();
+            (function tick(now) {
+                const p = Math.min((now - t0) / dur, 1);
+                const e = 1 - Math.pow(1 - p, 3);
+                el.textContent = Math.round(target * e).toLocaleString();
+                if (p < 1) requestAnimationFrame(tick);
+            })(t0);
+        }
+
+        // ── Navigation ────────────────────────────────────────
+        window.startOnboarding = () => switchTo(1);
+
+        window.goNext = async function () {
+            const n = Number(currentStep);
+            if (!validateStep(n)) return;
+            collectStep(n);
+            if (n < 4)  { switchTo(n + 1); return; }
+            if (n === 4){ switchTo(5); showResults(); return; }
+            await saveAndComplete();
+        };
+
+        window.goBack = function () {
+            const n = Number(currentStep);
+            if (n > 1) switchTo(n - 1, "back");
+        };
+
+        // ── Save to Firestore ─────────────────────────────────
+        async function saveAndComplete() {
+            const btn = document.getElementById("btn-next");
+            btn.disabled = true;
+            btn.innerHTML = `<span class="btn-spinner"></span><span class="ml-2">Saving…</span>`;
+
+            try {
+                const plan = formData._plan || buildNutritionPlan({
+                    dateOfBirth: formData.dateOfBirth, biologicalSex: formData.biologicalSex,
+                    heightCm: formData.heightCm, currentWeightKg: formData.currentWeightKg,
+                    goal: formData.goal, activityLevel: formData.activityLevel,
+                });
+
+                // Sync Firebase Auth displayName
+                if (currentUser.displayName !== formData.name) {
+                    await updateProfile(currentUser, { displayName: formData.name });
+                }
+
+                await setDoc(doc(db, "users", currentUser.uid), {
+                    profile: {
+                        displayName:  formData.name,
+                        email:        currentUser.email,
+                        dateOfBirth:  formData.dateOfBirth,
+                        biologicalSex: formData.biologicalSex,
+                    },
+                    nutrition: {
+                        heightCm:             formData.heightCm,
+                        currentWeightKg:      formData.currentWeightKg,
+                        targetWeightKg:       formData.targetWeightKg,
+                        targetDate:           formData.targetDate || null,
+                        goal:                 formData.goal,
+                        activityLevel:        formData.activityLevel,
+                        bmr:                  plan.bmr,
+                        tdee:                 plan.tdee,
+                        maintenanceCalories:  plan.maintenanceCalories,
+                        dailyCalories:        plan.dailyCalories,
+                        proteinG:             plan.proteinG,
+                        carbsG:               plan.carbsG,
+                        fatG:                 plan.fatG,
+                    },
+                    preferences: {
+                        unitSystem: formData.unitSystem,
+                    },
+                    onboardingCompleted: true,
+                    createdAt:  serverTimestamp(),
+                    updatedAt:  serverTimestamp(),
+                });
+
+                window.location.replace("index.html");
+            } catch (err) {
+                console.error("Save failed:", err);
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-check mr-2 text-xs"></i><span>Complete Setup</span>`;
+                // Show inline error
+                const alert = document.createElement("div");
+                alert.className = "mx-8 sm:mx-10 mb-4 px-4 py-3 rounded-2xl text-sm bg-rose-500/10 border border-rose-500/30 text-rose-300 auth-alert";
+                alert.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1.5"></i>Failed to save. Please try again.`;
+                document.getElementById("ob-nav").insertAdjacentElement("beforebegin", alert);
+                setTimeout(() => alert.remove(), 4000);
+            }
+        }
+
+        // Clear field errors on input
+        document.querySelectorAll(".ob-input").forEach(input => {
+            input.addEventListener("input", () => {
+                input.classList.remove("error");
+                const p = document.querySelector(`.field-msg[data-for="${input.id}"]`);
+                if (p) { p.textContent = ""; p.classList.remove("show"); }
+            });
+        });
+    </script>
+</body>
+</html>

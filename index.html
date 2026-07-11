@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriGPT • AI Nutrition Coach</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="tail-container bg-zinc-950 text-zinc-200">
+
+    <!-- Auth gate: shown until Firebase confirms a signed-in user -->
+    <div id="auth-gate" class="auth-gate">
+        <div class="flex flex-col items-center gap-y-4">
+            <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl shadow-inner shadow-emerald-600 bot-icon">🥑</div>
+            <div class="btn-spinner" style="border-top-color:#10b981;border-color:rgba(16,185,129,0.25)"></div>
+            <p class="text-xs text-zinc-500">Checking your session…</p>
+        </div>
+    </div>
+
+    <!-- App shell: hidden until authenticated -->
+    <div id="app-shell" class="hidden">
+    <div class="flex h-screen overflow-hidden">
+        <!-- LEFT SIDEBAR -->
+        <div class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+            <!-- logo -->
+            <div class="px-6 py-8 border-b border-zinc-800">
+                <div class="flex items-center gap-x-3">
+                    <div class="w-10 h-10 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl shadow-inner shadow-emerald-600">
+                        🥑
+                    </div>
+                    <div>
+                        <span class="logo-font text-3xl font-semibold tracking-tighter text-white">nutri</span>
+                        <span class="logo-font text-3xl font-semibold tracking-tighter text-emerald-400">GPT</span>
+                    </div>
+                </div>
+                <p class="text-xs text-zinc-500 mt-1 pl-1">your ai nutrition coach</p>
+            </div>
+            
+            <!-- nav -->
+            <div class="px-3 pt-6">
+                <div onclick="switchTab(0)" id="nav-0"
+                     class="nav-item flex items-center gap-x-3 px-4 py-3 hover:bg-zinc-800 rounded-3xl cursor-pointer bg-zinc-800 text-white mb-1">
+                    <i class="fa-solid fa-comment-dots w-5"></i>
+                    <span class="font-medium">Chat with AI</span>
+                </div>
+                <div onclick="switchTab(1)" id="nav-1"
+                     class="nav-item flex items-center gap-x-3 px-4 py-3 hover:bg-zinc-800 rounded-3xl cursor-pointer mb-1">
+                    <i class="fa-solid fa-chart-pie w-5"></i>
+                    <span class="font-medium">Dashboard</span>
+                </div>
+                <div onclick="switchTab(2)" id="nav-2"
+                     class="nav-item flex items-center gap-x-3 px-4 py-3 hover:bg-zinc-800 rounded-3xl cursor-pointer mb-1">
+                    <i class="fa-solid fa-list-check w-5"></i>
+                    <span class="font-medium">Today's Log</span>
+                </div>
+                <div onclick="switchTab(3)" id="nav-3"
+                     class="nav-item flex items-center gap-x-3 px-4 py-3 hover:bg-zinc-800 rounded-3xl cursor-pointer">
+                    <i class="fa-solid fa-clock-rotate-left w-5"></i>
+                    <span class="font-medium">History</span>
+                </div>
+            </div>
+            
+            <div class="mt-auto px-6">
+            <!-- account + logout -->
+            <div class="bg-zinc-950 rounded-3xl p-4 mb-4 border border-zinc-800 flex items-center gap-x-3">
+                <div id="user-avatar" class="w-10 h-10 bg-emerald-500 text-emerald-950 rounded-2xl flex items-center justify-center font-semibold text-sm shadow-inner shrink-0">AR</div>
+                <div class="min-w-0 flex-1">
+                    <div id="user-name" class="text-sm font-medium text-white truncate">Loading…</div>
+                    <div id="user-email" class="text-[11px] text-zinc-500 truncate">&nbsp;</div>
+                </div>
+                <button onclick="logout()" title="Sign out"
+                        class="w-9 h-9 shrink-0 bg-zinc-800 hover:bg-rose-500 hover:text-white text-zinc-400 rounded-2xl flex items-center justify-center transition-colors">
+                    <i class="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+                </button>
+            </div>
+                <!-- quick stats -->
+                <div class="bg-zinc-950 rounded-3xl p-5 mb-6 border border-zinc-800">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-xs uppercase tracking-widest text-zinc-500 font-medium">Today</div>
+                        <div onclick="completeDay()" 
+                             class="text-[10px] bg-zinc-800 hover:bg-rose-500 transition-colors px-3 py-1 rounded-2xl cursor-pointer flex items-center gap-x-1">
+                            <i class="fa-solid fa-check text-xs"></i>
+                            <span>END DAY</span>
+                        </div>
+                    </div>
+                    
+                    <!-- calorie circle -->
+                    <div class="flex justify-center mb-6">
+                        <div class="relative w-32 h-32">
+                            <svg class="w-32 h-32 -rotate-12" viewBox="0 0 42 42">
+                                <circle cx="21" cy="21" r="15" fill="none" stroke="#27272a" stroke-width="6"></circle>
+                                <circle id="calorie-ring" 
+                                        cx="21" cy="21" r="15" 
+                                        fill="none" 
+                                        stroke="#10b981" 
+                                        stroke-width="6"
+                                        stroke-dasharray="94.2"
+                                        stroke-dashoffset="23"
+                                        stroke-linecap="round"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <div id="calorie-count" class="text-5xl font-semibold text-white leading-none">1240</div>
+                                <div id="calorie-goal-display" class="text-emerald-400 text-xs tracking-widest font-medium">/ 2200</div>
+                                <div class="text-[10px] text-zinc-400 -mt-1">kcal</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <!-- protein -->
+                        <div>
+                            <div class="flex items-center justify-center gap-x-1 text-blue-400 text-xs mb-1">
+                                <i class="fa-solid fa-dumbbell text-[10px]"></i>
+                                <span class="font-medium">PRO</span>
+                            </div>
+                            <div id="protein-count" class="text-sm sm:text-base font-semibold text-white tracking-tight">68g</div>
+                            <div class="h-1.5 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                                <div id="protein-bar" 
+                                     class="h-1.5 bg-blue-400 rounded-full w-[45%]"></div>
+                            </div>
+                            <div id="sidebar-protein-goal" class="text-[10px] text-zinc-500 mt-1">150g</div>
+                        </div>
+                        
+                        <!-- carbs -->
+                        <div>
+                            <div class="flex items-center justify-center gap-x-1 text-amber-400 text-xs mb-1">
+                                <i class="fa-solid fa-bread-slice text-[10px]"></i>
+                                <span class="font-medium">CARB</span>
+                            </div>
+                            <div id="carb-count" class="text-sm sm:text-base font-semibold text-white tracking-tight">142g</div>
+                            <div class="h-1.5 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                                <div id="carb-bar" 
+                                     class="h-1.5 bg-amber-400 rounded-full w-[71%]"></div>
+                            </div>
+                            <div id="sidebar-carb-goal" class="text-[10px] text-zinc-500 mt-1">200g</div>
+                        </div>
+                        
+                        <!-- fat -->
+                        <div>
+                            <div class="flex items-center justify-center gap-x-1 text-rose-400 text-xs mb-1">
+                                <i class="fa-solid fa-burger text-[10px]"></i>
+                                <span class="font-medium">FAT</span>
+                            </div>
+                            <div id="fat-count" class="text-sm sm:text-base font-semibold text-white tracking-tight">48g</div>
+                            <div class="h-1.5 bg-zinc-800 rounded-full mt-2 overflow-hidden">
+                                <div id="fat-bar" 
+                                     class="h-1.5 bg-rose-400 rounded-full w-[74%]"></div>
+                            </div>
+                            <div id="sidebar-fat-goal" class="text-[10px] text-zinc-500 mt-1">65g</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- supported foods -->
+            <div class="px-6 pb-6 mt-auto">
+                <div class="text-xs text-zinc-400 mb-3 flex items-center gap-x-2">
+                    <div class="flex-1 h-px bg-zinc-700"></div>
+                    <span>KNOWN FOODS</span>
+                    <div class="flex-1 h-px bg-zinc-700"></div>
+                </div>
+                <div class="flex flex-wrap gap-2 text-[10px]">
+                    <div onclick="quickAddFood('banana')" 
+                         class="bg-zinc-800 hover:bg-emerald-900 transition-colors text-emerald-300 px-3 py-1 rounded-3xl cursor-pointer">banana</div>
+                    <div onclick="quickAddFood('apple')" 
+                         class="bg-zinc-800 hover:bg-emerald-900 transition-colors text-emerald-300 px-3 py-1 rounded-3xl cursor-pointer">apple</div>
+                    <div onclick="quickAddFood('chicken')" 
+                         class="bg-zinc-800 hover:bg-emerald-900 transition-colors text-emerald-300 px-3 py-1 rounded-3xl cursor-pointer">chicken</div>
+                    <div onclick="quickAddFood('avocado')" 
+                         class="bg-zinc-800 hover:bg-emerald-900 transition-colors text-emerald-300 px-3 py-1 rounded-3xl cursor-pointer">avocado</div>
+                    <div onclick="quickAddFood('almond')" 
+                         class="bg-zinc-800 hover:bg-emerald-900 transition-colors text-emerald-300 px-3 py-1 rounded-3xl cursor-pointer">almonds</div>
+                </div>
+            </div>
+            
+
+        </div>
+        
+        <!-- MAIN CHAT AREA -->
+        <div class="flex-1 flex flex-col" id="chat-tab">
+            <!-- chat header -->
+            <div class="h-14 bg-zinc-900 border-b border-zinc-800 px-6 flex items-center justify-between">
+                <div class="flex items-center gap-x-3">
+                    <div class="w-7 h-7 bg-gradient-to-br from-emerald-400 to-teal-400 rounded-2xl flex items-center justify-center text-xs shadow-inner">🤖</div>
+                    <div>
+                        <div class="font-semibold text-sm">NutriGPT</div>
+                        <div class="text-emerald-400 text-[10px] flex items-center gap-x-1">
+                            <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+                            ONLINE • trained on 8000+ foods
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-x-8 text-sm">
+                    <div class="flex items-center gap-x-6">
+                        <div onclick="showHelp()" class="flex items-center gap-x-2 text-zinc-400 hover:text-white cursor-pointer transition-colors">
+                            <i class="fa-solid fa-circle-info"></i>
+                            <span class="text-xs font-medium">HOW IT WORKS</span>
+                        </div>
+                        
+                        <div class="h-5 w-px bg-zinc-700"></div>
+                        
+                        <div class="flex items-center gap-x-1.5 bg-zinc-800 text-xs rounded-3xl pl-2 pr-5 py-1 cursor-pointer hover:bg-zinc-700 transition-colors"
+                             onclick="resetDemo()">
+                            <i class="fa-solid fa-rotate text-amber-400"></i>
+                            <span class="font-medium">RESET DEMO</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-x-2">
+                        <div class="text-right">
+                            <div class="text-xs font-medium text-white">Jan 18, 2025</div>
+                            <div id="current-streak" class="text-[10px] text-amber-300">🔥 7 day streak</div>
+                        </div>
+                        <div id="header-avatar" class="w-8 h-8 bg-emerald-500 text-emerald-950 rounded-2xl flex items-center justify-center font-semibold text-sm">?</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- messages -->
+            <div id="chat-messages" 
+                 class="flex-1 p-6 overflow-y-auto chat-container bg-[radial-gradient(#27272a_1px,transparent_1px)] bg-[length:40px_40px]">
+                <!-- messages populated by JS -->
+            </div>
+            
+            <!-- input area -->
+            <div class="p-6 bg-zinc-900 border-t border-zinc-800">
+                <div class="relative">
+                    <form onsubmit="handleUserMessage(event)" class="flex items-center gap-x-3">
+                        <input id="user-input"
+                               type="text"
+                               class="input-focus flex-1 bg-zinc-800 focus:outline-none border border-zinc-700 focus:border-emerald-400 rounded-3xl px-6 py-5 text-sm placeholder-zinc-400"
+                               placeholder="E.g. I ate 180 grams of grilled chicken breast...">
+                        
+                        <button type="submit"
+                                class="w-12 h-12 bg-emerald-500 hover:bg-emerald-600 transition-all active:scale-95 rounded-3xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/40">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="absolute -top-2 right-16 bg-zinc-800 text-[10px] px-4 py-1 rounded-3xl text-zinc-400 flex items-center gap-x-2 pointer-events-none">
+                        <span class="text-emerald-300">💡</span>
+                        <span>try: 250g salmon</span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-center gap-x-5 mt-6 text-[10px] text-zinc-500">
+                    <div onclick="suggestPrompt(0)" 
+                         class="hover:text-emerald-400 cursor-pointer transition-colors flex items-center gap-x-1">
+                        <i class="fa-solid fa-apple-whole"></i>
+                        <span>apple 150g</span>
+                    </div>
+                    <div onclick="suggestPrompt(1)" 
+                         class="hover:text-emerald-400 cursor-pointer transition-colors flex items-center gap-x-1">
+                        <i class="fa-solid fa-drumstick-bite"></i>
+                        <span>200g chicken</span>
+                    </div>
+                    <div onclick="suggestPrompt(2)" 
+                         class="hover:text-emerald-400 cursor-pointer transition-colors flex items-center gap-x-1">
+                        <i class="fa-solid fa-seedling"></i>
+                        <span>30g almonds</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- DASHBOARD TAB (hidden by default) -->
+        <div id="dashboard-tab" class="flex-1 bg-zinc-900 hidden flex-col">
+            <div class="h-14 bg-zinc-900 border-b border-zinc-700 px-8 flex items-center">
+                <span class="uppercase text-xs tracking-[1px] font-semibold text-emerald-400">Overview</span>
+            </div>
+            
+            <div class="p-8 flex-1 overflow-auto">
+                <div class="max-w-5xl mx-auto">
+                    <!-- greeting -->
+                    <div class="flex justify-between items-end mb-8">
+                        <div>
+                            <div id="dashboard-greeting" class="text-6xl font-light text-white">Good afternoon, there 👋</div>
+                            <div class="text-zinc-400">Here's how your nutrition is looking today</div>
+                        </div>
+                        
+                        <div class="text-right">
+                            <div onclick="completeDay()" 
+                                 class="inline-flex items-center gap-x-2 text-xs bg-white text-zinc-900 px-6 h-9 rounded-3xl font-semibold cursor-pointer">
+                                <i class="fa-solid fa-flag-checkered"></i>
+                                <span>COMPLETE DAY</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-12 gap-6">
+                        <!-- macro pie -->
+                        <div class="col-span-7 bg-zinc-800 rounded-3xl p-7">
+                            <div class="flex items-center justify-between mb-6">
+                                <div class="font-semibold">Macro split</div>
+                                <div id="dash-kcal-consumed" class="text-xs bg-zinc-700 text-white px-5 py-2 rounded-3xl">1240 kcal consumed</div>
+                            </div>
+                            
+                            <div class="flex gap-10 items-center">
+                                <div class="flex-1">
+                                    <canvas id="macro-pie" width="240" height="240"></canvas>
+                                </div>
+                                
+                                <div class="flex-1 space-y-6">
+                                    <div class="flex items-center gap-x-4">
+                                        <div class="w-3 h-3 bg-blue-400 rounded"></div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-end text-xs mb-2 gap-x-2">
+                                                <div class="font-medium text-blue-300 truncate">PROTEIN</div>
+                                                <div id="dash-pro-val" class="font-mono whitespace-nowrap flex-shrink-0 text-right">68g • 272kcal</div>
+                                            </div>
+                                            <div class="h-px bg-zinc-700"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-x-4">
+                                        <div class="w-3 h-3 bg-amber-400 rounded"></div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-end text-xs mb-2 gap-x-2">
+                                                <div class="font-medium text-amber-300 truncate">CARBS</div>
+                                                <div id="dash-carb-val" class="font-mono whitespace-nowrap flex-shrink-0 text-right">142g • 568kcal</div>
+                                            </div>
+                                            <div class="h-px bg-zinc-700"></div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-x-4">
+                                        <div class="w-3 h-3 bg-rose-400 rounded"></div>
+                                        <div class="flex-1">
+                                            <div class="flex justify-between items-end text-xs mb-2 gap-x-2">
+                                                <div class="font-medium text-rose-300 truncate">FAT</div>
+                                                <div id="dash-fat-val" class="font-mono whitespace-nowrap flex-shrink-0 text-right">48g • 432kcal</div>
+                                            </div>
+                                            <div class="h-px bg-zinc-700"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- daily summary cards -->
+                        <div class="col-span-5 space-y-6">
+                            <div class="bg-zinc-800 rounded-3xl p-6">
+                                <div class="flex justify-between">
+                                    <div>
+                                        <div class="text-xs uppercase text-zinc-400">Remaining</div>
+                                        <div id="remaining-kcal" class="text-5xl font-light text-white mt-1 truncate max-w-[200px]">960</div>
+                                        <div class="text-xs text-emerald-400">kcal until goal</div>
+                                    </div>
+                                    <div class="text-7xl text-amber-300/30">🍽️</div>
+                                </div>
+                            </div>
+                            
+                            <div onclick="switchTab(2)" 
+                                 class="bg-zinc-800 hover:bg-zinc-700 transition-colors rounded-3xl p-6 cursor-pointer">
+                                <div class="text-xs flex items-center gap-x-2 text-teal-400">
+                                    <i class="fa-solid fa-utensils"></i>
+                                    <span id="dash-logged-count" class="font-medium">FOODS LOGGED • 4</span>
+                                </div>
+                                <div id="dash-foods-list" class="mt-6 space-y-4 text-sm">
+                                    <!-- populated by js -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- tips -->
+                        <div class="col-span-12 bg-zinc-800/70 border border-dashed border-zinc-600 rounded-3xl p-8 flex items-center gap-6">
+                            <div class="text-4xl">💡</div>
+                            <div class="flex-1">
+                                <div class="font-medium text-emerald-300">AI TIP</div>
+                                <div id="ai-tip" class="text-zinc-300 text-sm">
+                                    Your protein intake is solid today. Consider adding more leafy greens to increase micronutrients without many calories.
+                                </div>
+                            </div>
+                            <button onclick="getNewTip()" 
+                                    class="text-xs border border-zinc-600 hover:border-zinc-300 transition-colors px-5 py-3.5 rounded-3xl">
+                                NEW TIP
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TODAY'S LOG TAB -->
+        <div id="log-tab" class="flex-1 bg-zinc-900 hidden flex-col">
+            <div class="h-14 bg-zinc-900 border-b border-zinc-700 px-8 flex items-center justify-between">
+                <div class="flex items-center gap-x-2">
+                    <i class="fa-solid fa-list-check text-emerald-400"></i>
+                    <span class="font-semibold">Today's Food Log</span>
+                </div>
+                <div class="text-xs px-4 py-2 bg-zinc-800 rounded-3xl text-zinc-400 flex items-center">
+                    <span id="log-date">January 18th, 2025</span>
+                </div>
+            </div>
+            
+            <div class="flex-1 p-8 overflow-auto" id="full-log-list">
+                <!-- populated by JS -->
+            </div>
+            
+            <div class="bg-zinc-800 border-t border-zinc-700 p-6 flex items-center justify-between text-sm">
+                <div class="flex items-center gap-x-8">
+                    <div>
+                        <span class="text-zinc-400 text-xs block">TOTAL KCAL</span>
+                        <span id="log-total-kcal" class="font-mono text-4xl text-white">1240</span>
+                    </div>
+                    <div class="h-9 w-px bg-zinc-600"></div>
+                    <div class="grid grid-cols-3 gap-x-8">
+                        <div class="text-center">
+                            <span class="block text-xs text-blue-400">PROTEIN</span>
+                            <span id="log-total-protein" class="font-medium">68g</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-xs text-amber-400">CARBS</span>
+                            <span id="log-total-carbs" class="font-medium">142g</span>
+                        </div>
+                        <div class="text-center">
+                            <span class="block text-xs text-rose-400">FAT</span>
+                            <span id="log-total-fat" class="font-medium">48g</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div onclick="clearLog()" 
+                     class="flex items-center gap-x-2 text-xs text-rose-300 hover:text-rose-400 cursor-pointer">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>CLEAR ALL</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HISTORY TAB -->
+        <div id="history-tab" class="flex-1 bg-zinc-900 hidden p-8 overflow-auto">
+            <div class="max-w-md mx-auto">
+                <h1 class="text-3xl font-light mb-8">Nutrition History</h1>
+                
+                <div class="space-y-6" id="history-list">
+                    <!-- JS injected cards -->
+                </div>
+                
+                <div class="mt-12 text-center">
+                    <div onclick="fakeExportReport()" 
+                         class="inline-flex items-center justify-center gap-x-3 border border-dashed border-zinc-400 text-zinc-400 hover:text-white hover:border-white transition-colors rounded-3xl px-10 py-6 text-sm">
+                        <i class="fa-solid fa-file-export"></i>
+                        <div>
+                            <div class="font-medium">EXPORT 30-DAY REPORT</div>
+                            <div class="text-xs text-zinc-500">PDF • includes graphs</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- RIGHT PANEL - LIVE SUMMARY -->
+        <div class="w-80 bg-zinc-900 border-l border-zinc-700 flex flex-col">
+            <div class="px-5 pt-6 pb-4 border-b border-zinc-700 flex justify-between items-center">
+                <div class="uppercase text-xs font-medium flex items-center gap-x-2 text-teal-400">
+                    <div class="w-px h-3 bg-teal-400"></div>
+                    LIVE INTAKE
+                </div>
+                <button onclick="window.openLogHub()" class="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full transition-colors flex items-center">
+                    <i class="fa-solid fa-plus mr-1"></i> Log
+                </button>
+            </div>
+            
+            <!-- logged foods -->
+            <div id="live-log" class="flex-1 p-5 space-y-3 overflow-auto">
+                <!-- JS injected food entries -->
+            </div>
+            
+            <!-- summary footer -->
+            <div class="p-5 border-t border-zinc-700 bg-zinc-950">
+                <div class="rounded-3xl bg-black/30 p-5">
+                    <div class="flex items-baseline justify-between mb-4">
+                        <div class="text-xs text-zinc-400">CONSUMED</div>
+                        <div id="live-kcal-big" class="text-5xl font-light text-white tabular-nums">1240</div>
+                    </div>
+                    
+                    <div class="flex justify-between text-xs">
+                        <div class="flex items-center gap-x-1.5">
+                            <span class="text-blue-400">P</span>
+                            <span id="live-pro" class="font-medium text-white">68g</span>
+                        </div>
+                        <div class="flex items-center gap-x-1.5">
+                            <span class="text-amber-400">C</span>
+                            <span id="live-carb" class="font-medium text-white">142g</span>
+                        </div>
+                        <div class="flex items-center gap-x-1.5">
+                            <span class="text-rose-400">F</span>
+                            <span id="live-fat" class="font-medium text-white">48g</span>
+                        </div>
+                    </div>
+                    
+                    <div onclick="switchTab(0)" 
+                         class="mt-8 text-center text-xs py-4 bg-emerald-900 hover:bg-emerald-800 transition-colors rounded-3xl cursor-pointer font-medium">
+                        BACK TO CHAT →
+                    </div>
+                </div>
+                
+                <div class="text-center mt-8">
+                    <div id="water-tracker" 
+                         onclick="logWater()"
+                         class="flex justify-center items-center gap-x-2 text-xs mx-auto w-fit px-5 py-2 bg-cyan-900 hover:bg-cyan-800 rounded-3xl cursor-pointer transition-colors">
+                        <i class="fa-solid fa-droplet text-cyan-300"></i>
+                        <span class="font-medium text-cyan-200">+250ml water</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODALS -->
+    <!-- Log Hub Modal -->
+    <div onclick="if(event.target.id === 'log-hub-backdrop') window.closeLogHub()" id="log-hub-backdrop"
+         class="hidden fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 transition-opacity">
+        <div onclick="event.stopImmediatePropagation()" 
+             class="bg-zinc-900 w-full max-w-md mx-auto sm:rounded-3xl rounded-t-3xl overflow-hidden flex flex-col h-[85vh] sm:h-[600px] border border-zinc-700">
+            
+            <div class="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900/50">
+                <h3 class="font-semibold text-white">Log Food</h3>
+                <button onclick="window.closeLogHub()" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="p-4 relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-8 top-1/2 -translate-y-1/2 text-zinc-500"></i>
+                <input type="text" id="food-search-input" placeholder="Search for a food..." 
+                       class="w-full bg-zinc-950 border border-zinc-800 rounded-2xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors">
+            </div>
+
+            <div class="flex gap-x-2 px-4 mb-2">
+                <button onclick="window.switchLogTab('recent')" id="tab-btn-recent" class="flex-1 py-1.5 rounded-lg bg-zinc-800 text-xs font-medium text-emerald-400">Recent</button>
+                <button onclick="window.switchLogTab('favorites')" id="tab-btn-favorites" class="flex-1 py-1.5 rounded-lg bg-transparent text-xs font-medium text-zinc-500 hover:bg-zinc-800">Favorites</button>
+                <button onclick="window.switchLogTab('search')" id="tab-btn-search" class="hidden flex-1 py-1.5 rounded-lg bg-transparent text-xs font-medium text-zinc-500">Search</button>
+            </div>
+
+            <div id="log-hub-results" class="flex-1 overflow-auto p-2 space-y-1">
+                <!-- Populated by JS -->
+            </div>
+
+            <div class="p-4 border-t border-zinc-800 grid grid-cols-3 gap-3 bg-zinc-950">
+                <button class="flex flex-col items-center justify-center py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors opacity-50 cursor-not-allowed">
+                    <i class="fa-solid fa-barcode text-lg mb-1"></i>
+                    <span class="text-[10px] uppercase font-semibold tracking-wider">Barcode</span>
+                </button>
+                <button class="flex flex-col items-center justify-center py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors opacity-50 cursor-not-allowed">
+                    <i class="fa-solid fa-camera text-lg mb-1"></i>
+                    <span class="text-[10px] uppercase font-semibold tracking-wider">Camera</span>
+                </button>
+                <button class="flex flex-col items-center justify-center py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors opacity-50 cursor-not-allowed">
+                    <i class="fa-solid fa-microphone text-lg mb-1"></i>
+                    <span class="text-[10px] uppercase font-semibold tracking-wider">Voice</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quantity Modal -->
+    <div onclick="if(event.target.id === 'qty-modal-backdrop') window.closeQtyModal()" id="qty-modal-backdrop"
+         class="hidden fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50 transition-opacity">
+        <div onclick="event.stopImmediatePropagation()" 
+             class="bg-zinc-900 w-full max-w-sm mx-auto sm:rounded-3xl rounded-t-3xl overflow-hidden border border-zinc-700 p-6 shadow-2xl">
+            
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 id="qty-food-name" class="font-semibold text-lg text-white leading-tight">Food Name</h3>
+                    <div id="qty-food-cal" class="text-xs text-zinc-400 mt-1">100 kcal per 100g</div>
+                </div>
+                <button onclick="window.closeQtyModal()" class="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="mb-5">
+                <label class="block text-xs uppercase tracking-wider font-semibold text-zinc-500 mb-2">Meal Type</label>
+                <select id="qty-meal-type" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:border-emerald-500">
+                    <option value="Breakfast">Breakfast</option>
+                    <option value="Lunch">Lunch</option>
+                    <option value="Dinner">Dinner</option>
+                    <option value="Snack" selected>Snack</option>
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-xs uppercase tracking-wider font-semibold text-zinc-500 mb-2">Quantity (grams)</label>
+                <div class="flex items-center gap-x-3">
+                    <input type="range" id="qty-slider" min="1" max="1000" value="100" class="flex-1 accent-emerald-500 h-1.5 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
+                    <div class="relative w-24">
+                        <input type="number" id="qty-input" value="100" class="w-full bg-zinc-950 border border-zinc-800 rounded-xl py-2 px-2 pr-6 text-sm text-white text-right font-mono focus:outline-none focus:border-emerald-500">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 pointer-events-none">g</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2 mb-8 text-center bg-zinc-950 p-3 rounded-2xl border border-zinc-800/50">
+                <div>
+                    <div class="text-[10px] text-zinc-500 font-semibold mb-1">KCAL</div>
+                    <div id="qty-val-cal" class="text-sm font-semibold text-white">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-blue-400 font-semibold mb-1">PRO</div>
+                    <div id="qty-val-pro" class="text-sm font-semibold text-white">0g</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-amber-400 font-semibold mb-1">CARB</div>
+                    <div id="qty-val-carb" class="text-sm font-semibold text-white">0g</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-rose-400 font-semibold mb-1">FAT</div>
+                    <div id="qty-val-fat" class="text-sm font-semibold text-white">0g</div>
+                </div>
+            </div>
+
+            <button id="qty-log-btn" onclick="window.confirmLogMeal()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-bold text-sm py-3 rounded-2xl transition-colors flex items-center justify-center gap-x-2">
+                <span id="qty-log-btn-text">Log Food</span>
+                <i class="fa-solid fa-check" id="qty-log-btn-icon"></i>
+            </button>
+        </div>
+    </div>
+
+    </div><!-- /app-shell -->
+
+    <!-- Firebase auth guard: redirects to login if not signed in, then reveals the app.
+         Runs as a module; app.js (classic script) holds all existing app logic. -->
+    <!-- Firebase auth guard: checks session, enforces onboarding, applies profile -->
+    <script type="module">
+        import { auth, db } from "./firebase.js";
+        import {
+            onAuthStateChanged,
+            signOut,
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import {
+            doc, getDoc,
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initFoodLogger } from "./foodLogController.js";
+
+        function initials(nameOrEmail) {
+            if (!nameOrEmail) return "?";
+            const parts = nameOrEmail.trim().split(/\s+/);
+            if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+            return nameOrEmail.slice(0, 2).toUpperCase();
+        }
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.replace("login.html"); return; }
+
+            // Fetch Firestore profile
+            let profileData = null;
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists()) profileData = snap.data();
+            } catch (e) {
+                console.warn("Profile fetch failed:", e);
+            }
+
+            // Redirect if onboarding not complete
+            if (!profileData?.onboardingCompleted) {
+                window.location.replace("onboarding.html");
+                return;
+            }
+
+            // Resolve display name (prefer stored profile name over auth displayName)
+            const name = profileData.profile?.displayName
+                || user.displayName
+                || (user.email ? user.email.split("@")[0] : "User");
+            const initStr = initials(name);
+
+            // Populate sidebar account block
+            const nameEl        = document.getElementById("user-name");
+            const emailEl       = document.getElementById("user-email");
+            const avatarEl      = document.getElementById("user-avatar");
+            const headerAvEl    = document.getElementById("header-avatar");
+            if (nameEl)     nameEl.textContent    = name;
+            if (emailEl)    emailEl.textContent   = user.email || "";
+            if (avatarEl)   avatarEl.textContent  = initStr;
+            if (headerAvEl) headerAvEl.textContent = initStr;
+
+            // Apply real nutrition profile BEFORE revealing shell (no flash)
+            if (window.applyUserProfile) window.applyUserProfile(profileData);
+            
+            // Initialize Food Logging listeners
+            initFoodLogger();
+
+            // Reveal app, remove gate
+            const gate  = document.getElementById("auth-gate");
+            const shell = document.getElementById("app-shell");
+            if (shell) shell.classList.remove("hidden");
+            if (gate)  { gate.classList.add("hidden-fade"); setTimeout(() => gate.remove(), 400); }
+        });
+
+        // Exposed for the sidebar logout button.
+        window.logout = async function () {
+            try { await signOut(auth); } finally { window.location.replace("login.html"); }
+        };
+    </script>
+
+    <!-- Existing app logic (classic script — keeps inline onclick handlers working) -->
+    <script src="app.js"></script>
+</body>
+</html>

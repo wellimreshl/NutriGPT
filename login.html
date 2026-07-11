@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in • NutriGPT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="tail-container auth-bg text-zinc-200 flex items-center justify-center p-4">
+
+    <div class="auth-orb auth-orb-1"></div>
+    <div class="auth-orb auth-orb-2"></div>
+
+    <div class="auth-card w-full max-w-md rounded-[2rem] p-8 sm:p-10">
+
+        <!-- brand -->
+        <div class="flex items-center gap-x-3 mb-8">
+            <div class="w-11 h-11 bg-emerald-500 rounded-2xl flex items-center justify-center text-3xl shadow-inner shadow-emerald-600">
+                🥑
+            </div>
+            <div>
+                <span class="logo-font text-3xl font-semibold tracking-tighter text-white">nutri</span>
+                <span class="logo-font text-3xl font-semibold tracking-tighter text-emerald-400">GPT</span>
+                <p class="text-xs text-zinc-500 -mt-1 pl-0.5">your ai nutrition coach</p>
+            </div>
+        </div>
+
+        <!-- tab switch -->
+        <div class="grid grid-cols-2 gap-1 p-1 bg-zinc-800/70 rounded-2xl mb-7 text-sm font-medium">
+            <button id="tab-login" onclick="showMode('login')"
+                class="py-2.5 rounded-xl bg-zinc-950 text-white transition-colors">Sign in</button>
+            <button id="tab-signup" onclick="showMode('signup')"
+                class="py-2.5 rounded-xl text-zinc-400 hover:text-white transition-colors">Create account</button>
+        </div>
+
+        <!-- config warning (only if firebase keys not set) -->
+        <div id="config-warning" class="hidden auth-alert mb-5 px-4 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs leading-relaxed">
+            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
+            Firebase isn't configured yet. Add your project keys in
+            <span class="font-mono text-amber-200">firebase.js</span> to enable sign in.
+        </div>
+
+        <!-- top alert (errors / success) -->
+        <div id="auth-alert" class="hidden auth-alert mb-5 px-4 py-3 rounded-2xl text-sm"></div>
+
+        <!-- ============ LOGIN PANEL ============ -->
+        <form id="login-form" class="auth-panel space-y-4" novalidate>
+            <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Email</label>
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+                    <input id="login-email" type="email" autocomplete="email"
+                        class="auth-input w-full bg-zinc-950/60 border border-zinc-700 rounded-2xl py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-600"
+                        placeholder="you@example.com">
+                </div>
+                <p class="field-msg" data-for="login-email"></p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Password</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+                    <input id="login-password" type="password" autocomplete="current-password"
+                        class="auth-input w-full bg-zinc-950/60 border border-zinc-700 rounded-2xl py-3 pl-11 pr-11 text-sm text-white placeholder-zinc-600"
+                        placeholder="••••••••">
+                    <button type="button" onclick="togglePw('login-password', this)"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-sm w-6">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <p class="field-msg" data-for="login-password"></p>
+            </div>
+            <div class="flex justify-end">
+                <button type="button" onclick="resetPassword()"
+                    class="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Forgot password?</button>
+            </div>
+            <button type="submit" id="login-submit"
+                class="auth-btn w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold py-3 rounded-2xl flex items-center justify-center gap-x-2">
+                <span class="label">Sign in</span>
+            </button>
+        </form>
+
+        <!-- ============ SIGNUP PANEL ============ -->
+        <form id="signup-form" class="auth-panel space-y-4 hidden" novalidate>
+            <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Full name</label>
+                <div class="relative">
+                    <i class="fa-solid fa-user absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+                    <input id="signup-name" type="text" autocomplete="name"
+                        class="auth-input w-full bg-zinc-950/60 border border-zinc-700 rounded-2xl py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-600"
+                        placeholder="Alex Rivera">
+                </div>
+                <p class="field-msg" data-for="signup-name"></p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Email</label>
+                <div class="relative">
+                    <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+                    <input id="signup-email" type="email" autocomplete="email"
+                        class="auth-input w-full bg-zinc-950/60 border border-zinc-700 rounded-2xl py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-600"
+                        placeholder="you@example.com">
+                </div>
+                <p class="field-msg" data-for="signup-email"></p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Password</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+                    <input id="signup-password" type="password" autocomplete="new-password"
+                        class="auth-input w-full bg-zinc-950/60 border border-zinc-700 rounded-2xl py-3 pl-11 pr-11 text-sm text-white placeholder-zinc-600"
+                        placeholder="At least 6 characters">
+                    <button type="button" onclick="togglePw('signup-password', this)"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 text-sm w-6">
+                        <i class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+                <p class="field-msg" data-for="signup-password"></p>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-zinc-400 mb-1.5">Confirm password</label>
+                <div class="relative">
+                    <i class="fa-solid fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm"></i>
+                    <input id="signup-confirm" type="password" autocomplete="new-password"
+                        class="auth-input w-full bg-zinc-950/60 border border-zinc-700 rounded-2xl py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-600"
+                        placeholder="Re-enter your password">
+                </div>
+                <p class="field-msg" data-for="signup-confirm"></p>
+            </div>
+            <button type="submit" id="signup-submit"
+                class="auth-btn w-full bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold py-3 rounded-2xl flex items-center justify-center gap-x-2">
+                <span class="label">Create account</span>
+            </button>
+        </form>
+
+        <p class="text-center text-[11px] text-zinc-600 mt-7">
+            Secured by Firebase Authentication
+        </p>
+    </div>
+
+    <script type="module">
+        import { auth, isFirebaseConfigured } from "./firebase.js";
+        import {
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            updateProfile,
+            sendPasswordResetEmail,
+            onAuthStateChanged,
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+        // If already signed in, skip the login page entirely.
+        onAuthStateChanged(auth, (user) => {
+            if (user) window.location.replace("index.html");
+        });
+
+        if (!isFirebaseConfigured) {
+            document.getElementById("config-warning").classList.remove("hidden");
+        }
+
+        // ---------- view switching (login <-> signup) ----------
+        window.showMode = function (mode) {
+            const isLogin = mode === "login";
+            document.getElementById("login-form").classList.toggle("hidden", !isLogin);
+            document.getElementById("signup-form").classList.toggle("hidden", isLogin);
+            // re-trigger the panel animation
+            const panel = document.getElementById(isLogin ? "login-form" : "signup-form");
+            panel.classList.remove("auth-panel"); void panel.offsetWidth; panel.classList.add("auth-panel");
+            // tab styles
+            document.getElementById("tab-login").className =
+                "py-2.5 rounded-xl transition-colors " +
+                (isLogin ? "bg-zinc-950 text-white" : "text-zinc-400 hover:text-white");
+            document.getElementById("tab-signup").className =
+                "py-2.5 rounded-xl transition-colors " +
+                (!isLogin ? "bg-zinc-950 text-white" : "text-zinc-400 hover:text-white");
+            hideAlert();
+            clearAllFieldErrors();
+        };
+
+        // ---------- password visibility ----------
+        window.togglePw = function (id, btn) {
+            const el = document.getElementById(id);
+            const showing = el.type === "text";
+            el.type = showing ? "password" : "text";
+            btn.querySelector("i").className = showing ? "fa-solid fa-eye" : "fa-solid fa-eye-slash";
+        };
+
+        // ---------- validation helpers ----------
+        function setFieldError(id, msg) {
+            const input = document.getElementById(id);
+            input.classList.add("field-error");
+            const p = document.querySelector(`.field-msg[data-for="${id}"]`);
+            if (p) { p.textContent = msg; p.classList.add("show"); }
+        }
+        function clearFieldError(id) {
+            const input = document.getElementById(id);
+            if (input) input.classList.remove("field-error");
+            const p = document.querySelector(`.field-msg[data-for="${id}"]`);
+            if (p) { p.textContent = ""; p.classList.remove("show"); }
+        }
+        function clearAllFieldErrors() {
+            document.querySelectorAll(".auth-input").forEach((i) => i.classList.remove("field-error"));
+            document.querySelectorAll(".field-msg").forEach((p) => { p.textContent = ""; p.classList.remove("show"); });
+        }
+        // clear a field's error as soon as the user edits it
+        document.querySelectorAll(".auth-input").forEach((input) => {
+            input.addEventListener("input", () => clearFieldError(input.id));
+        });
+
+        const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        function showAlert(msg, type = "error") {
+            const el = document.getElementById("auth-alert");
+            el.className =
+                "auth-alert mb-5 px-4 py-3 rounded-2xl text-sm " +
+                (type === "success"
+                    ? "bg-emerald-500/10 border border-emerald-500/30 text-emerald-300"
+                    : "bg-rose-500/10 border border-rose-500/30 text-rose-300");
+            el.innerHTML =
+                `<i class="fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-exclamation"} mr-1.5"></i>` + msg;
+            el.classList.remove("hidden");
+        }
+        function hideAlert() {
+            document.getElementById("auth-alert").classList.add("hidden");
+        }
+
+        // ---------- button loading state ----------
+        function setLoading(btnId, loading, labelText) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = loading;
+            btn.innerHTML = loading
+                ? `<span class="btn-spinner"></span><span>Please wait…</span>`
+                : `<span class="label">${labelText}</span>`;
+        }
+
+        // ---------- friendly Firebase error messages ----------
+        function friendlyError(code) {
+            const map = {
+                "auth/invalid-email": "That email address looks invalid.",
+                "auth/user-disabled": "This account has been disabled.",
+                "auth/user-not-found": "No account found with that email.",
+                "auth/wrong-password": "Incorrect email or password.",
+                "auth/invalid-credential": "Incorrect email or password.",
+                "auth/email-already-in-use": "An account with this email already exists.",
+                "auth/weak-password": "Password should be at least 6 characters.",
+                "auth/too-many-requests": "Too many attempts. Please try again later.",
+                "auth/network-request-failed": "Network error. Check your connection.",
+                "auth/operation-not-allowed": "Email/password sign-in isn't enabled in Firebase.",
+            };
+            return map[code] || "Something went wrong. Please try again.";
+        }
+
+        function guardConfigured() {
+            if (!isFirebaseConfigured) {
+                showAlert("Firebase isn't configured yet — add your keys in firebase.js.", "error");
+                return false;
+            }
+            return true;
+        }
+
+        // ---------- LOGIN ----------
+        document.getElementById("login-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hideAlert(); clearAllFieldErrors();
+            const email = document.getElementById("login-email").value.trim();
+            const pw = document.getElementById("login-password").value;
+
+            let ok = true;
+            if (!emailRe.test(email)) { setFieldError("login-email", "Enter a valid email address."); ok = false; }
+            if (!pw) { setFieldError("login-password", "Password is required."); ok = false; }
+            if (!ok || !guardConfigured()) return;
+
+            setLoading("login-submit", true, "Sign in");
+            try {
+                await signInWithEmailAndPassword(auth, email, pw);
+                showAlert("Signed in! Redirecting…", "success");
+                window.location.replace("index.html");
+            } catch (err) {
+                setLoading("login-submit", false, "Sign in");
+                showAlert(friendlyError(err.code));
+            }
+        });
+
+        // ---------- SIGNUP ----------
+        document.getElementById("signup-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            hideAlert(); clearAllFieldErrors();
+            const name = document.getElementById("signup-name").value.trim();
+            const email = document.getElementById("signup-email").value.trim();
+            const pw = document.getElementById("signup-password").value;
+            const confirm = document.getElementById("signup-confirm").value;
+
+            let ok = true;
+            if (name.length < 2) { setFieldError("signup-name", "Please enter your name."); ok = false; }
+            if (!emailRe.test(email)) { setFieldError("signup-email", "Enter a valid email address."); ok = false; }
+            if (pw.length < 6) { setFieldError("signup-password", "Use at least 6 characters."); ok = false; }
+            if (confirm !== pw) { setFieldError("signup-confirm", "Passwords don't match."); ok = false; }
+            if (!ok || !guardConfigured()) return;
+
+            setLoading("signup-submit", true, "Create account");
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pw);
+                await updateProfile(cred.user, { displayName: name });
+                showAlert("Account created! Redirecting…", "success");
+                window.location.replace("onboarding.html");
+            } catch (err) {
+                setLoading("signup-submit", false, "Create account");
+                showAlert(friendlyError(err.code));
+            }
+        });
+
+        // ---------- FORGOT PASSWORD ----------
+        window.resetPassword = async function () {
+            const email = document.getElementById("login-email").value.trim();
+            clearFieldError("login-email");
+            if (!emailRe.test(email)) {
+                setFieldError("login-email", "Enter your email above first, then click reset.");
+                return;
+            }
+            if (!guardConfigured()) return;
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showAlert("Password reset email sent. Check your inbox.", "success");
+            } catch (err) {
+                showAlert(friendlyError(err.code));
+            }
+        };
+    </script>
+
+</body>
+</html>
